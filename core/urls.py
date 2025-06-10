@@ -6,6 +6,7 @@ router = DefaultRouter()
 router.register(r'users', UserViewSet, basename='user')
 router.register(r'articles', ArticleViewSet, basename='article')
 router.register(r'tags', TagViewSet, basename='tag')
+# Removed duplicate registration for article-detail
 
 urlpatterns = [
     path('', include(router.urls)),
