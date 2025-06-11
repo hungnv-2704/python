@@ -1,22 +1,61 @@
 from rest_framework import viewsets
+from rest_framework.views import APIView
 from .models import User, Article, Tag
-from .serializers import UserSerializer, ArticleSerializer, TagSerializer, ProfileSerializer
+from .serializers import UserSerializer, ArticleSerializer, TagSerializer, ProfileSerializer, UserRegisterSerializer
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework.permissions import IsAuthenticated
+from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.viewsets import ViewSet
 
-class UserViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = User.objects.all()
-    serializer_class = UserSerializer
+class RegisterView(APIView):
+    def post(self, request):
+        serializer = UserRegisterSerializer(data=request.data)
+        if serializer.is_valid():
+            user = serializer.save()
+            refresh = RefreshToken.for_user(user)
+            return Response({
+                'user': UserSerializer(user).data,
+                'token': {
+                    'refresh': str(refresh),
+                    'access': str(refresh.access_token),
+                }
+            }, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+class LoginView(TokenObtainPairView):
+    # có thể tùy biến serializer_class nếu cần thêm dữ liệu
+    pass
 
-class ArticleViewSet(viewsets.ModelViewSet):
-    queryset = Article.objects.all().select_related('author').prefetch_related('tags')
-    serializer_class = ArticleSerializer
-    lookup_field = 'id' 
-class TagViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = Tag.objects.all()
-    serializer_class = TagSerializer
+# GET /api/user - Lấy thông tin người dùng đã đăng nhập
+class UserRetrieveView(APIView):
+    permission_classes = [IsAuthenticated]
 
-class ProfileViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = User.objects.all()
-    serializer_class = ProfileSerializer
-    lookup_field = 'username'
+    def get(self, request):
+        print('111111111111111111111111111111111111111')
+        serializer = UserSerializer(request.user)
+        return Response({'user': serializer.data})
+
+# PUT /api/user - Cập nhật thông tin
+class UserUpdateView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def put(self, request):
+        serializer = UserSerializer(request.user, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({'user': serializer.data})
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+# class ArticleViewSet(viewsets.ModelViewSet):
+#     queryset = Article.objects.all().select_related('author').prefetch_related('tags')
+#     serializer_class = ArticleSerializer
+#     lookup_field = 'id' 
+# class TagViewSet(viewsets.ReadOnlyModelViewSet):
+#     queryset = Tag.objects.all()
+#     serializer_class = TagSerializer
+
+# class ProfileViewSet(viewsets.ReadOnlyModelViewSet):
+#     queryset = User.objects.all()
+#     serializer_class = ProfileSerializer
+#     lookup_field = 'username'
