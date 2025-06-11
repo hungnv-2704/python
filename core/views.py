@@ -1,6 +1,6 @@
 from rest_framework import viewsets
 from .models import User, Article, Tag
-from .serializers import UserSerializer, ArticleSerializer, TagSerializer
+from .serializers import UserSerializer, ArticleSerializer, TagSerializer, ProfileSerializer
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
@@ -15,3 +15,8 @@ class ArticleViewSet(viewsets.ModelViewSet):
 class TagViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
+
+class ProfileViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = User.objects.all()
+    serializer_class = ProfileSerializer
+    lookup_field = 'username'

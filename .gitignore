@@ -1,0 +1,3 @@
+# cache
+core/__pycache__/*
+realworld_project/__pycache__/*
