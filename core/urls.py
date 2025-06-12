@@ -3,7 +3,7 @@ from rest_framework.routers import DefaultRouter
 
 from core.serializers import ProfileRetrieveAPIView
 # from .views import UserViewSet, ArticleViewSet, TagViewSet, ProfileViewSet, RegisterView, LoginView, UserUpdateView
-from .views import RegisterView, UserUpdateView, LoginView, UserRetrieveView
+from .views import RegisterView, UserUpdateView, LoginView, UserRetrieveView, ArticleListAPIView, ArticleFeedAPIView, ArticleFavoriteAPIView
 
 # router = DefaultRouter()
 # router.register(r'users', UserViewSet, basename='user')
@@ -22,4 +22,7 @@ urlpatterns = [
     path('users/edit', UserUpdateView.as_view(), name='update'),      # Explicitly define UserUpdateView
     path('users/login', LoginView.as_view(), name='login'),
     path('users', UserRetrieveView.as_view(), name='login'),
+    path('articles', ArticleListAPIView.as_view(), name='article-list'),
+    path('articles/feed', ArticleFeedAPIView.as_view(), name='article-feed'),
+    path('aarticles/<slug:slug>/favorite', ArticleFavoriteAPIView.as_view(), name='article-favorite'),
 ]

@@ -1,3 +1,4 @@
+from django.shortcuts import get_object_or_404
 from rest_framework import viewsets
 from rest_framework.views import APIView
 from .models import User, Article, Tag
@@ -9,6 +10,7 @@ from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.viewsets import ViewSet
+from rest_framework.permissions import AllowAny
 
 class RegisterView(APIView):
     def post(self, request):
@@ -33,7 +35,6 @@ class UserRetrieveView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        print('111111111111111111111111111111111111111')
         serializer = UserSerializer(request.user)
         return Response({'user': serializer.data})
 
@@ -47,6 +48,59 @@ class UserUpdateView(APIView):
             serializer.save()
             return Response({'user': serializer.data})
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+class ArticleListAPIView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        queryset = Article.objects.all()
+
+        tag = request.query_params.get('tag')
+        author = request.query_params.get('author')
+
+        if tag:
+            queryset = queryset.filter(tags__name=tag)
+        if author:
+            queryset = queryset.filter(author__username=author)
+
+        # Pagination (LimitOffset)
+        limit = int(request.query_params.get('limit', 10))
+        offset = int(request.query_params.get('offset', 0))
+        total = queryset.count()
+        queryset = queryset[offset:offset+limit]
+
+        serializer = ArticleSerializer(queryset, many=True, context={'request': request})
+        return Response({
+            'articles': serializer.data,
+            'articlesCount': total
+        })
+class ArticleFeedAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        following_users = user.following.values_list('followed__id', flat=True)
+        queryset = Article.objects.filter(author__in=following_users).order_by('-created_at')
+
+        limit = int(request.query_params.get('limit', 10))
+        offset = int(request.query_params.get('offset', 0))
+        total = queryset.count()
+        queryset = queryset[offset:offset+limit]
+
+        serializer = ArticleSerializer(queryset, many=True, context={'request': request})
+        return Response({
+            'articles': serializer.data,
+            'articlesCount': total
+        })
+class ArticleFavoriteAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, slug):
+        article = get_object_or_404(Article, slug=slug)
+        article.favorited_by.add(request.user)
+        article.save()
+
+        serializer = ArticleSerializer(article, context={'request': request})
+        return Response({'article': serializer.data}, status=status.HTTP_200_OK)
 # class ArticleViewSet(viewsets.ModelViewSet):
 #     queryset = Article.objects.all().select_related('author').prefetch_related('tags')
 #     serializer_class = ArticleSerializer
