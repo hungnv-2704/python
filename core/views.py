@@ -101,15 +101,3 @@ class ArticleFavoriteAPIView(APIView):
 
         serializer = ArticleSerializer(article, context={'request': request})
         return Response({'article': serializer.data}, status=status.HTTP_200_OK)
-# class ArticleViewSet(viewsets.ModelViewSet):
-#     queryset = Article.objects.all().select_related('author').prefetch_related('tags')
-#     serializer_class = ArticleSerializer
-#     lookup_field = 'id' 
-# class TagViewSet(viewsets.ReadOnlyModelViewSet):
-#     queryset = Tag.objects.all()
-#     serializer_class = TagSerializer
-
-# class ProfileViewSet(viewsets.ReadOnlyModelViewSet):
-#     queryset = User.objects.all()
-#     serializer_class = ProfileSerializer
-#     lookup_field = 'username'

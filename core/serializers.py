@@ -52,11 +52,3 @@ class ProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['username', 'bio']
-
-class ProfileRetrieveAPIView(generics.RetrieveAPIView):
-    serializer_class = ProfileSerializer
-    lookup_field = 'username'  # Change lookup_field to 'username'
-    queryset = User.objects.all()
-
-    def get_queryset(self):
-        return User.objects.filter(username=self.kwargs['username'])
