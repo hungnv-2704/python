@@ -1,15 +1,13 @@
 from django.shortcuts import get_object_or_404
-from rest_framework import viewsets
 from rest_framework.views import APIView
-from .models import Profile, User, Article, Tag, Comment
-from .serializers import UserSerializer, ArticleSerializer, TagSerializer, ProfileSerializer, UserRegisterSerializer
+from .models import Profile, User, Article, Comment
+from .serializers import UserSerializer, ArticleSerializer, ProfileSerializer, UserRegisterSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.viewsets import ViewSet
 from rest_framework.permissions import AllowAny
 
 class RegisterView(APIView):
@@ -78,7 +76,7 @@ class ArticleFeedAPIView(APIView):
 
     def get(self, request):
         user = request.user
-        following_users = user.following.values_list('followed__id', flat=True)
+        following_users = user.following.values_list('user_id', flat=True)
         queryset = Article.objects.filter(author__in=following_users).order_by('-created_at')
 
         limit = int(request.query_params.get('limit', 10))
@@ -105,9 +103,10 @@ class FollowUserAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request, username):
+        print(username)
         target_user = get_object_or_404(User, username=username)
-        target_profile = get_object_or_404(Profile, user=target_user)
-
+        target_profile, created = Profile.objects.get_or_create(user=target_user)
+        print(target_user, '1')
         target_profile.followers.add(request.user)
         return Response({
             'username': target_user.username,
@@ -133,3 +132,13 @@ class CommentCreateAPIView(APIView):
             'author': comment.author.username,
             'createdAt': comment.created_at
         }, status=status.HTTP_201_CREATED)
+
+class ArticleCreateAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = ArticleSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(author=request.user)
+            return Response({'article': serializer.data}, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
