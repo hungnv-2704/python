@@ -1,7 +1,7 @@
 from django.shortcuts import get_object_or_404
 from rest_framework import viewsets
 from rest_framework.views import APIView
-from .models import User, Article, Tag
+from .models import Profile, User, Article, Tag, Comment
 from .serializers import UserSerializer, ArticleSerializer, TagSerializer, ProfileSerializer, UserRegisterSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.permissions import IsAuthenticated
@@ -101,3 +101,35 @@ class ArticleFavoriteAPIView(APIView):
 
         serializer = ArticleSerializer(article, context={'request': request})
         return Response({'article': serializer.data}, status=status.HTTP_200_OK)
+class FollowUserAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, username):
+        target_user = get_object_or_404(User, username=username)
+        target_profile = get_object_or_404(Profile, user=target_user)
+
+        target_profile.followers.add(request.user)
+        return Response({
+            'username': target_user.username,
+            'following': True
+        }, status=status.HTTP_200_OK)
+class CommentCreateAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, slug):
+        article = get_object_or_404(Article, slug=slug)
+        body = request.data.get('body')
+        if not body:
+            return Response({'error': 'Body is required'}, status=400)
+
+        comment = Comment.objects.create(
+            article=article,
+            author=request.user,
+            body=body
+        )
+        return Response({
+            'id': comment.id,
+            'body': comment.body,
+            'author': comment.author.username,
+            'createdAt': comment.created_at
+        }, status=status.HTTP_201_CREATED)

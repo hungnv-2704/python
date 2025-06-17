@@ -17,9 +17,13 @@ class Article(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     author = models.ForeignKey(User, on_delete=models.CASCADE, related_name='articles')
     tags = models.ManyToManyField(Tag, related_name='articles')
+    favorited_by = models.ManyToManyField(User, related_name='favorited_articles', blank=True)
 
 class Comment(models.Model):
     body = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
     article = models.ForeignKey(Article, on_delete=models.CASCADE, related_name='comments')
     author = models.ForeignKey(User, on_delete=models.CASCADE, related_name='comments')
+class Profile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    followers = models.ManyToManyField(User, related_name='following', blank=True)
