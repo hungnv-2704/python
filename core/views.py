@@ -9,6 +9,7 @@ from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
+from django.core.cache import cache
 
 class RegisterView(APIView):
     def post(self, request):
@@ -76,18 +77,29 @@ class ArticleFeedAPIView(APIView):
 
     def get(self, request):
         user = request.user
-        following_users = user.following.values_list('user_id', flat=True)
-        queryset = Article.objects.filter(author__in=following_users).order_by('-created_at')
+        cache_key = f"feed:{user.id}"
+        data = cache.get(cache_key)
+        if data is None:
+            following_users = user.following.values_list('user_id', flat=True)
+            queryset = Article.objects.filter(author__in=following_users).order_by('-created_at')
+            serializer = ArticleSerializer(queryset, many=True, context={'request': request})
+            data = {
+                'articles': serializer.data,
+                'total': queryset.count()
+            }
+            cache.set(cache_key, data, timeout=60)
+        else:
+            queryset = Article.objects.filter(
+                id__in=[article['id'] for article in data['articles']]
+            )
 
         limit = int(request.query_params.get('limit', 10))
         offset = int(request.query_params.get('offset', 0))
-        total = queryset.count()
-        queryset = queryset[offset:offset+limit]
+        paginated_articles = data['articles'][offset:offset + limit]
 
-        serializer = ArticleSerializer(queryset, many=True, context={'request': request})
         return Response({
-            'articles': serializer.data,
-            'articlesCount': total
+            'articles': paginated_articles,
+            'articlesCount': data['total']
         })
 class ArticleFavoriteAPIView(APIView):
     permission_classes = [IsAuthenticated]
